@@ -1,0 +1,18 @@
+{
+  "name": "real-estate-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo root for backend and frontend tooling (Husky, commitlint, lint-staged)",
+  "scripts": {
+    "prepare": "husky",
+    "lint:backend": "npm run lint --prefix backend",
+    "lint:frontend": "npm run lint --prefix frontend"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "eslint": "^10.7.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8"
+  }
+}
