@@ -4,6 +4,7 @@ import User from "../models/user.js";
 import {encryptPassword, validatePassword} from "../helpers/auth.js";
 import {nanoid} from 'nanoid';
 import jwt from 'jsonwebtoken';
+import {sendTemporaryPasswordEmail} from "../helpers/email.js";
 
 export const login = async (req, res) => {
     const {email, password} = req.body;
@@ -28,7 +29,6 @@ export const login = async (req, res) => {
 
                 res.json({token, user: createdUser});
             } catch (error) {
-                console.log(error);
                 res.json({error: 'Invalid email. Please use valid email address'});
             }
         } else {
@@ -44,5 +44,27 @@ export const login = async (req, res) => {
         }
     } catch (error) {
         res.json({error: 'Something went wrong, please try again'});
+    }
+}
+
+export const forgotPassword = async (req, res) => {
+    const {email} = req.body;
+    let user = await User.findOne({email});
+
+    try {
+        if (!user) return res.json({error: 'If you are already registered user, you will reset temporary password shortly'});
+        else {
+            const password = nanoid(12);
+            user.password = await encryptPassword(password);
+            await user.save();
+            try {
+                await sendTemporaryPasswordEmail(email, password);
+                return res.json({message: 'Password sent to your mailbox successfully'});
+            } catch (error) {
+                return res.json({error: 'Error while trying to send temporary password'});
+            }
+        }
+    } catch (error) {
+        return res.json({error: 'Something went wrong, please try again'});
     }
 }
