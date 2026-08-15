@@ -68,3 +68,50 @@ export const forgotPassword = async (req, res) => {
         return res.json({error: 'Something went wrong, please try again'});
     }
 }
+
+export const updatePassword = async(req, res) => {
+    try {
+        let {password} = req.body;
+        password = password?.trim() ?? '';
+
+        if(!password) return res.json({error: 'Password is required'})
+        if(password?.length < 8) return res.json({error: 'Password length should be at least 8 characters long'})
+
+        const hashedPassword = await encryptPassword(password);
+        await User.findByIdAndUpdate(req.user._id, {password: hashedPassword});
+        res.json({ok: true})
+    }
+    catch (error) {
+        res.json({error})
+    }
+}
+
+export const updateUsername = async(req, res) => {
+  try {
+      const {username} = req.body;
+      const trimmedUsername = username?.trim();
+
+      if(!trimmedUsername) return res.json({error: "Username is required"});
+      const existingUser = await User.findOne({username: trimmedUsername});
+      if(existingUser) return res.json({error: "Username is already taken. Try different one"});
+
+      const updatedUser = await User.findByIdAndUpdate(req.user._id, {username: trimmedUsername}, {new: true});
+      updatedUser.password = undefined;
+      res.json(updatedUser)
+  } catch(error) {
+      res.json({
+          error
+      })
+  }
+};
+
+export const getCurrentUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.json({error: 'No user with this id'});
+        user.password = undefined;
+        res.json({user});
+    } catch (error) {
+        res.json({error})
+    }
+}
