@@ -1,6 +1,6 @@
 const HEADER_MAX_LENGTH = 100;
 const SCOPES = ['core', 'backend', 'frontend'];
-const HEADER_PATTERN = new RegExp(`^\\[(${SCOPES.join('|')})\\] .+$`);
+const HEADER_PATTERN = new RegExp(`^\\[(${SCOPES.join('|')})\\]\\([^)]*\\) - .+$`);
 
 module.exports = {
     plugins: [
@@ -10,7 +10,7 @@ module.exports = {
                     const header = parsed.header || '';
                     return [
                         HEADER_PATTERN.test(header),
-                        `commit message must match "[${SCOPES.join('|')}] <message>", e.g. "[backend] fix login validation"`,
+                        `commit message must match "[<scope>](<domain>) - <message>", e.g. "[backend](auth) - fix login validation"`,
                     ];
                 },
             },
