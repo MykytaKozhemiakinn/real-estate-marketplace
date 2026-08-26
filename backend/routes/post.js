@@ -8,5 +8,7 @@ const upload = multer({storage: multer.memoryStorage()})
 
 router.post("/upload-image", authenticate, upload.any(), post.uploadImage)
 router.delete("/remove-image", authenticate, post.removeImage)
+router.post("/create-post", authenticate, post.createPost)
+
 
 export default router;

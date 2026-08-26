@@ -1,4 +1,5 @@
 import {uploadImageToS3, deleteImageFromS3} from "../helpers/upload-image.js";
+import {geoCodeAddress} from "../helpers/google.js";
 
 export const uploadImage = async (req, res) => {
     try {
@@ -34,3 +35,21 @@ export const removeImage = async(req,res) => {
         res.json({error: 'Remove image failed'})
     }
 }
+
+export const createPost = async (req, res) => {
+    try {
+        const { address } = req.body;
+
+        if (!address?.trim()) {
+            return res.status(400).json({ error: "Address is required" });
+        }
+
+        const { location, googleMap } = await geoCodeAddress(address);
+        return res.json({ location, googleMap });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            error: error.message || "Create post error"
+        });
+    }
+};
