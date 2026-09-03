@@ -134,3 +134,35 @@ export const getPost = async (req, res) => {
     }
 
 };
+
+export const getEstateForSell = async (req, res) => {
+    try {
+        const page = req.params.page || 1;
+        const pageSize = 10;
+        const skip = (page - 1) * pageSize;
+        const totalAmount = await Post.countDocuments({action: 'Sell'});
+
+        const posts = await Post.find({action: 'Sell'}).populate("postedBy", 'name username').select("-googleMap").sort({createdAt: -1}).skip(skip).limit(pageSize);
+        return res.json({posts, page, totalPages: Math.ceil(totalAmount / pageSize)});
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message || "Get posts for sale error"
+        });
+    }
+}
+
+export const getEstateForRent = async (req, res) => {
+    try {
+        const page = req.params.page || 1;
+        const pageSize = 10;
+        const skip = (page - 1) * pageSize;
+        const totalAmount = await Post.countDocuments({action: 'Rent'});
+
+        const posts = await Post.find({action: 'Rent'}).populate("postedBy", 'name username').select("-googleMap").sort({createdAt: -1}).skip(skip).limit(pageSize);
+        return res.json({posts, page, totalPages: Math.ceil(totalAmount / pageSize)});
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message || "Get posts for sale error"
+        });
+    }
+}
