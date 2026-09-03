@@ -166,3 +166,20 @@ export const getEstateForRent = async (req, res) => {
         });
     }
 }
+
+export const removePost = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const post = await Post.findOne({_id: id}).populate("postedBy", '_id');
+
+        if (!post) return res.status(404).json({error: 'No post found'});
+        if (post.postedBy._id.toString() !== req.user._id.toString()) return res.status(401).json({error: 'Unauthorized'});
+
+        await Post.deleteOne({_id: id});
+        res.json({success: true})
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message || "Error during removing post"
+        });
+    }
+}
