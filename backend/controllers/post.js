@@ -1,9 +1,11 @@
 import {uploadImageToS3, deleteImageFromS3} from "../helpers/upload-image.js";
+
 import {geoCodeAddress} from "../helpers/google.js";
 import Post from "../models/post.js";
 import {nanoid} from "nanoid";
 import User from "../models/user.js";
 import slugify from "slugify";
+import {sendContactEmailToOwner} from "../helpers/email.js";
 
 export const uploadImage = async (req, res) => {
     try {
@@ -172,7 +174,7 @@ export const updatePost = async (req, res) => {
         const {id} = req.params;
         const post = await Post.findOne({_id: id}).populate("postedBy", "_id");
 
-        if(!post) return res.status(404).json({error: "Post not found"});
+        if (!post) return res.status(404).json({error: "Post not found"});
         if (post.postedBy._id.toString() !== req.user._id.toString()) return res.status(401).json({error: 'Unauthorized'});
 
         const updatedPost = await Post.findByIdAndUpdate(id,
@@ -209,22 +211,42 @@ export const removePost = async (req, res) => {
 
 export const getUserPosts = async (req, res) => {
     try {
-       const userId = req.params.id;
-       const pageSize = 10;
-       const page = req.params.page;
-       const skip = (page - 1) * pageSize;
-       const totalPosts = await Post.countDocuments({postedBy: userId});
+        const userId = req.params.id;
+        const pageSize = 10;
+        const page = req.params.page;
+        const skip = (page - 1) * pageSize;
+        const totalPosts = await Post.countDocuments({postedBy: userId});
 
-       const posts = await Post.find({postedBy: userId}).populate("postedBy", 'name username').select("-googleMap").sort({createdAt: -1}).skip(skip).limit(pageSize);
+        const posts = await Post.find({postedBy: userId}).populate("postedBy", 'name username').select("-googleMap").sort({createdAt: -1}).skip(skip).limit(pageSize);
 
-       return res.json({
-           posts,
-           page,
-           totalPages: Math.ceil(totalPosts / pageSize)
-       })
+        return res.json({
+            posts,
+            page,
+            totalPages: Math.ceil(totalPosts / pageSize)
+        })
     } catch (error) {
         return res.status(500).json({
             error: error.message || "Error fetching user posts"
+        });
+    }
+}
+
+export const contactOwner = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const {message} = req.body;
+
+        const post = await Post.findOne({_id: id}).populate("postedBy", '_id name username email');
+        if (!post) return res.status(404).json({error: 'No post found'});
+
+        const user = await User.findByIdAndUpdate(req.user._id, {
+            $addToSet: {enquiredProperties: id}
+        })
+        await sendContactEmailToOwner(post, message, user);
+
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message || "Error contacting the owner"
         });
     }
 }
