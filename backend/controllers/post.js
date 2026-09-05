@@ -91,8 +91,8 @@ export const createPost = async (req, res) => {
 
 export const getPost = async (req, res) => {
     try {
-        const {slug} = req.params;
-        const post = await Post.findOne({slug}).select('-googleMap').populate("postedBy", "name username");
+        const {id} = req.params;
+        const post = await Post.findOne({_id: id}).select('-googleMap').populate("postedBy", "name username");
         if (!post) {
             return res.status(404).json({error: "No post found"});
         }
@@ -167,6 +167,29 @@ export const getEstateForRent = async (req, res) => {
     }
 }
 
+export const updatePost = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const post = await Post.findOne({_id: id}).populate("postedBy", "_id");
+
+        if(!post) return res.status(404).json({error: "Post not found"});
+        if (post.postedBy._id.toString() !== req.user._id.toString()) return res.status(401).json({error: 'Unauthorized'});
+
+        const updatedPost = await Post.findByIdAndUpdate(id,
+            {$set: req.body},
+            {new: true, runValidators: true}
+        );
+        res.json({
+            success: true,
+            post: updatedPost
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message || "Error updating post"
+        });
+    }
+}
+
 export const removePost = async (req, res) => {
     try {
         const {id} = req.params;
@@ -180,6 +203,28 @@ export const removePost = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             error: error.message || "Error during removing post"
+        });
+    }
+}
+
+export const getUserPosts = async (req, res) => {
+    try {
+       const userId = req.params.id;
+       const pageSize = 10;
+       const page = req.params.page;
+       const skip = (page - 1) * pageSize;
+       const totalPosts = await Post.countDocuments({postedBy: userId});
+
+       const posts = await Post.find({postedBy: userId}).populate("postedBy", 'name username').select("-googleMap").sort({createdAt: -1}).skip(skip).limit(pageSize);
+
+       return res.json({
+           posts,
+           page,
+           totalPages: Math.ceil(totalPosts / pageSize)
+       })
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message || "Error fetching user posts"
         });
     }
 }
