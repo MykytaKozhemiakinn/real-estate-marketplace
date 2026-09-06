@@ -50,6 +50,10 @@ const postSchema = new Schema({
     description: {},
     features: {},
     nearBy: {},
+    views: {
+        type: Number,
+        default: 0
+    },
     postedBy: {
         type: ObjectId,
         ref: "User"

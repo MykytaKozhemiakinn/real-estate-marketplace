@@ -6,6 +6,7 @@ import {nanoid} from "nanoid";
 import User from "../models/user.js";
 import slugify from "slugify";
 import {sendContactEmailToOwner} from "../helpers/email.js";
+import {incrementViewCounter} from "../helpers/post.js";
 
 export const uploadImage = async (req, res) => {
     try {
@@ -91,51 +92,53 @@ export const createPost = async (req, res) => {
     }
 };
 
-export const getPost = async (req, res) => {
-    try {
-        const {id} = req.params;
-        const post = await Post.findOne({_id: id}).select('-googleMap').populate("postedBy", "name username");
-        if (!post) {
-            return res.status(404).json({error: "No post found"});
-        }
-        const related = await Post.aggregate([
-            {
-                $geoNear: {
-                    near: {
-                        coordinates: post.location.coordinates,
-                    },
-                    distanceField: 'dist.calculated',
-                    maxDistance: 50000,
-                    spherical: true
-                },
-            },
-            {
-                $match: {
-                    _id: {$ne: post._id},
-                    action: post.action,
-                    propertyType: post.propertyType,
-                },
-            },
-            {
-                $limit: 3
-            },
-            {
-                $project: {
-                    googleMap: 0
-                },
+    export const getPost = async (req, res) => {
+        try {
+            const {id} = req.params;
+            const post = await Post.findOne({_id: id}).select('-googleMap').populate("postedBy", "name username");
+            if (!post) {
+                return res.status(404).json({error: "No post found"});
             }
-        ]);
-        const relatedWithPopulatedBy = await Post.populate(related, {
-            path: 'postedBy',
-            select: 'name username'
-        });
-        res.json({post, related: relatedWithPopulatedBy})
-    } catch (error) {
-        console.log(error);
-        res.json({error: "Error during finding the post"})
-    }
 
-};
+            const related = await Post.aggregate([
+                {
+                    $geoNear: {
+                        near: {
+                            coordinates: post.location.coordinates,
+                        },
+                        distanceField: 'dist.calculated',
+                        maxDistance: 50000,
+                        spherical: true
+                    },
+                },
+                {
+                    $match: {
+                        _id: {$ne: post._id},
+                        action: post.action,
+                        propertyType: post.propertyType,
+                    },
+                },
+                {
+                    $limit: 3
+                },
+                {
+                    $project: {
+                        googleMap: 0
+                    },
+                }
+            ]);
+            await incrementViewCounter(id);
+            const relatedWithPopulatedBy = await Post.populate(related, {
+                path: 'postedBy',
+                select: 'name username',
+            });
+            res.json({post, related: relatedWithPopulatedBy})
+        } catch (error) {
+            console.log(error);
+            res.json({error: "Error during finding the post"})
+        }
+
+    };
 
 export const getEstateForSell = async (req, res) => {
     try {
