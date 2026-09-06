@@ -5,6 +5,7 @@ import {encryptPassword, validatePassword} from "../helpers/auth.js";
 import {nanoid} from 'nanoid';
 import jwt from 'jsonwebtoken';
 import {sendTemporaryPasswordEmail} from "../helpers/email.js";
+import Post from "../models/post.js";
 
 export const login = async (req, res) => {
     const {email, password} = req.body;
@@ -83,6 +84,38 @@ export const updatePassword = async(req, res) => {
     }
     catch (error) {
         res.json({error})
+    }
+}
+
+export const updateUser = async (req, res) => {
+    try {
+        const {_id} = req.user;
+        const user = await User.findOne({_id})
+
+        if (!user) return res.status(404).json({error: "User not found"});
+        if (user._id.toString() !== _id.toString()) return res.status(401).json({error: 'Unauthorized'});
+
+        const {name, phone, company, address, about} = req.body;
+        const updates = {};
+
+        if (name !== undefined) updates.name = name;
+        if (phone !== undefined) updates.phone = phone;
+        if (company !== undefined) updates.company = company;
+        if (address !== undefined) updates.address = address;
+        if (about !== undefined) updates.about = about;
+
+        const updatedUser = await User.findByIdAndUpdate(_id,
+            {$set: updates},
+            {new: true, runValidators: true}
+        );
+        res.json({
+            success: true,
+            user: updatedUser
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message || "Error updating user"
+        });
     }
 }
 
